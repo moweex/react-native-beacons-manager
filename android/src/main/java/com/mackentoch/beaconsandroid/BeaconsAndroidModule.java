@@ -1,10 +1,16 @@
 package com.mackentoch.beaconsandroid;
 
+import android.app.Notification;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.graphics.Color;
 import android.os.RemoteException;
+import android.provider.Settings;
 import android.support.annotation.Nullable;
+import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 
 import com.facebook.react.bridge.Callback;
@@ -30,18 +36,25 @@ import org.altbeacon.beacon.RangeNotifier;
 import org.altbeacon.beacon.Region;
 import org.altbeacon.beacon.service.ArmaRssiFilter;
 import org.altbeacon.beacon.service.RunningAverageRssiFilter;
+import org.altbeacon.beacon.startup.BootstrapNotifier;
+import org.altbeacon.beacon.startup.RegionBootstrap;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 
-public class BeaconsAndroidModule extends ReactContextBaseJavaModule implements BeaconConsumer {
+public class BeaconsAndroidModule extends ReactContextBaseJavaModule implements BeaconConsumer, BootstrapNotifier {
   private static final String LOG_TAG = "BeaconsAndroidModule";
   private static final int RUNNING_AVG_RSSI_FILTER = 0;
   private static final int ARMA_RSSI_FILTER = 1;
   private BeaconManager mBeaconManager;
   private Context mApplicationContext;
   private ReactApplicationContext mReactContext;
+
+  private RegionBootstrap regionBootstrap;
+  private Boolean isEntered = true;
 
   public BeaconsAndroidModule(ReactApplicationContext reactContext) {
     super(reactContext);
@@ -52,6 +65,9 @@ public class BeaconsAndroidModule extends ReactContextBaseJavaModule implements 
     // need to bind at instantiation so that service loads (to test more)
     mBeaconManager.getBeaconParsers().add(new BeaconParser().setBeaconLayout("m:0-3=4c000215,i:4-19,i:20-21,i:22-23,p:24-24"));
     bindManager();
+
+    // App Killed Handler
+      regionBootstrap = new RegionBootstrap(this, new ArrayList<Region>());
   }
 
   @Override
@@ -266,6 +282,10 @@ public class BeaconsAndroidModule extends ReactContextBaseJavaModule implements 
             String.valueOf(major).equals("-1") ? "" : String.valueOf(major)
           );
           mBeaconManager.startMonitoringBeaconsInRegion(region);
+
+          // All Killed Handle
+          regionBootstrap.addRegion(region);
+
           resolve.invoke();
       } catch (Exception e) {
           Log.e(LOG_TAG, "startMonitoring, error: ", e);
@@ -312,6 +332,10 @@ public class BeaconsAndroidModule extends ReactContextBaseJavaModule implements 
 
       try {
           mBeaconManager.stopMonitoringBeaconsInRegion(region);
+
+          // App Killed Handle
+          regionBootstrap.removeRegion(region);
+
           resolve.invoke();
       } catch (Exception e) {
           Log.e(LOG_TAG, "stopMonitoring, error: ", e);
@@ -423,4 +447,81 @@ public class BeaconsAndroidModule extends ReactContextBaseJavaModule implements 
         minor.length() > 0 ? Identifier.parse(minor) : null
       );
   }
+
+
+    private Class getMainActivityClass() {
+        String packageName = getApplicationContext().getPackageName();
+        Intent launchIntent = getApplicationContext().getPackageManager().getLaunchIntentForPackage(packageName);
+        String className = launchIntent.getComponent().getClassName();
+        try {
+            return Class.forName(className);
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    @Override
+    public void didEnterRegion(Region region) {
+        isEntered = true;
+        Log.i(LOG_TAG, ">>> didEnterRegion");
+
+        Class intentClass = getMainActivityClass();
+//        Intent notificationIntent = new Intent(mApplicationContext, intentClass);
+//        Integer requestCode = new Random().nextInt(10000);
+//        PendingIntent contentIntent = PendingIntent.getActivity(mApplicationContext, requestCode, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+//
+//        NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(mApplicationContext)
+//                .setSmallIcon(android.R.drawable.ic_dialog_info)
+//                .setContentTitle("[Beacon] DidEnterRegion")
+//                .setContentText("You have entered the Region")
+//                .setAutoCancel(false)
+//                .setSound(Settings.System.DEFAULT_NOTIFICATION_URI)
+//                .setContentIntent(contentIntent);
+//
+//        Notification notification = notificationBuilder.build();
+//        notification.flags |= Notification.FLAG_AUTO_CANCEL;
+//        notification.defaults |= Notification.DEFAULT_SOUND;
+//        NotificationManager notificationManager = (NotificationManager) mApplicationContext.getSystemService(Context.NOTIFICATION_SERVICE);
+//
+//        notificationManager.notify(requestCode, notification);
+
+        Intent intent = new Intent(mApplicationContext, intentClass);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+
+        // Important:  make sure to add android:launchMode="singleInstance" in the manifest
+        // to keep multiple copies of this activity from getting created if the user has
+        // already manually launched the app.
+        mApplicationContext.startActivity(intent);
+    }
+
+    @Override
+    public void didExitRegion(Region region) {
+        isEntered = false;
+        Log.i(LOG_TAG, ">>> didExitRegion");
+
+//        Class intentClass = getMainActivityClass();
+//        Intent notificationIntent = new Intent(mApplicationContext, intentClass);
+//        Integer requestCode = new Random().nextInt(10000);
+//        PendingIntent contentIntent = PendingIntent.getActivity(mApplicationContext, requestCode, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+//
+//        NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(mApplicationContext)
+//                .setSmallIcon(android.R.drawable.ic_dialog_info)
+//                .setContentTitle("[Beacon] DidExitRegion")
+//                .setContentText("You have exited the Region")
+//                .setAutoCancel(false)
+//                .setSound(Settings.System.DEFAULT_NOTIFICATION_URI)
+//                .setContentIntent(contentIntent);
+//
+//        Notification notification = notificationBuilder.build();
+//        notification.flags |= Notification.FLAG_AUTO_CANCEL;
+//        notification.defaults |= Notification.DEFAULT_SOUND;
+//        NotificationManager notificationManager = (NotificationManager) mApplicationContext.getSystemService(Context.NOTIFICATION_SERVICE);
+//        notificationManager.notify(requestCode, notification);
+    }
+
+    @Override
+    public void didDetermineStateForRegion(int i, Region region) {
+        Log.i(LOG_TAG, ">>> didDetermineStateForRegion");
+    }
 }
