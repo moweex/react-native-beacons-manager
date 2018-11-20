@@ -38,9 +38,14 @@ RCT_EXPORT_MODULE()
     self.locationManager = [[CLLocationManager alloc] init];
 
     self.locationManager.delegate = self;
+      
+    // Options to allow app killed state running
+    self.locationManager.desiredAccuracy = kCLLocationAccuracyThreeKilometers;
+    self.locationManager.allowsBackgroundLocationUpdates = true;
+      
     self.locationManager.pausesLocationUpdatesAutomatically = NO;
     self.dropEmptyRanges = NO;
-      
+
     self.eddyStoneScanner = [[ESSBeaconScanner alloc] init];
     self.eddyStoneScanner.delegate = self;
   }
@@ -210,6 +215,8 @@ RCT_EXPORT_METHOD(getMonitoredRegions:(RCTResponseSenderBlock)callback)
 
 RCT_EXPORT_METHOD(startMonitoringForRegion:(NSDictionary *) dict)
 {
+  // App killed State Running
+  [self.locationManager startMonitoringSignificantLocationChanges];
   [self.locationManager startMonitoringForRegion:[self convertDictToBeaconRegion:dict]];
 }
 
@@ -224,6 +231,8 @@ RCT_EXPORT_METHOD(startRangingBeaconsInRegion:(NSDictionary *) dict)
 
 RCT_EXPORT_METHOD(stopMonitoringForRegion:(NSDictionary *) dict)
 {
+  // App killed State Running
+  [self.locationManager stopMonitoringSignificantLocationChanges];
   [self.locationManager stopMonitoringForRegion:[self convertDictToBeaconRegion:dict]];
 }
 
@@ -271,6 +280,18 @@ RCT_EXPORT_METHOD(shouldDropEmptyRanges:(BOOL)drop)
   }
 }
 
+// Allow location update in app killed state
+-(void)locationManager:(CLLocationManager *)manager didUpdateToLocation:(CLLocation *)newLocation fromLocation:(CLLocation *)oldLocation{
+    //Do nothing here, but enjoy ranging callbacks in background :-)
+    NSLog(@"[Beacon][Native] didUpdateToLocation");
+}
+
+// Allow location update in app killed state
+-(void)locationManager:(CLLocationManager *)manager didUpdateLocations:(CLLocation *)newLocation fromLocation:(CLLocation *)oldLocation{
+    //Do nothing here, but enjoy ranging callbacks in background :-)
+    NSLog(@"[Beacon][Native] didUpdateLocations");
+}
+
 -(void)locationManager:(CLLocationManager *)manager didChangeAuthorizationStatus:(CLAuthorizationStatus)status
 {
     NSString *statusName = [self nameForAuthorizationStatus:status];
@@ -305,7 +326,7 @@ RCT_EXPORT_METHOD(shouldDropEmptyRanges:(BOOL)drop)
                           @"state":   [self stringForState:state],
                           @"identifier":  region.identifier,
                           };
-
+    NSLog(@"[Beacon][Native] didDetermineState");
     [self sendEventWithName:@"didDetermineState" body:event];
 }
 
@@ -337,6 +358,8 @@ RCT_EXPORT_METHOD(shouldDropEmptyRanges:(BOOL)drop)
                               },
                           @"beacons": beaconArray
                           };
+    
+    NSLog(@"[Beacon][Native] beaconsDidRange 1");
 
     [self sendEventWithName:@"beaconsDidRange" body:event];
 }
@@ -345,6 +368,7 @@ RCT_EXPORT_METHOD(shouldDropEmptyRanges:(BOOL)drop)
         didEnterRegion:(CLBeaconRegion *)region {
   NSDictionary *event = [self convertBeaconRegionToDict: region];
 
+  NSLog(@"[Beacon][Native] regionDidEnter");
   [self sendEventWithName:@"regionDidEnter" body:event];
 }
 
@@ -352,6 +376,7 @@ RCT_EXPORT_METHOD(shouldDropEmptyRanges:(BOOL)drop)
          didExitRegion:(CLBeaconRegion *)region {
   NSDictionary *event = [self convertBeaconRegionToDict: region];
 
+  NSLog(@"[Beacon][Native] regionDidExit");
   [self sendEventWithName:@"regionDidExit" body:event];
 }
 
@@ -379,6 +404,7 @@ RCT_EXPORT_METHOD(shouldDropEmptyRanges:(BOOL)drop)
                                     },
                             @"beacons": beaconArray
                             };
+    NSLog(@"[Beacon][Native] beaconsDidRange 2");
     [self sendEventWithName:@"beaconsDidRange" body:event];
 }
 
