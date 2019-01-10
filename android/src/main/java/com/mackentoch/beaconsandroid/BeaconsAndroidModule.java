@@ -65,36 +65,38 @@ public class BeaconsAndroidModule extends ReactContextBaseJavaModule implements 
         // need to bind at instantiation so that service loads (to test more)
         //mBeaconManager.getBeaconParsers().add(new BeaconParser().setBeaconLayout("m:0-3=4c000215,i:4-19,i:20-21,i:22-23,p:24-24")); // AltBeacon
         mBeaconManager.getBeaconParsers().add(new BeaconParser().setBeaconLayout("m:2-3=0215,i:4-19,i:20-21,i:22-23,p:24-24")); // IBeacon
-        mBeaconManager.setDebug(true);
+//        mBeaconManager.setDebug(false);
 
+        // Fix: may not be called after consumers are already bound beacon
+        if (!mBeaconManager.isAnyConsumerBound()) {
+            Notification.Builder builder = new Notification.Builder(mApplicationContext);
+            builder.setSmallIcon(android.R.drawable.ic_dialog_info);
+            builder.setContentTitle("Scanning for Beacons");
+            Class intentClass = getMainActivityClass();
+            Intent intent = new Intent(mApplicationContext, intentClass);
+            PendingIntent pendingIntent = PendingIntent.getActivity(mApplicationContext, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+            builder.setContentIntent(pendingIntent);
 
-        Notification.Builder builder = new Notification.Builder(mApplicationContext);
-        builder.setSmallIcon(android.R.drawable.ic_dialog_info);
-        builder.setContentTitle("Scanning for Beacons");
-        Class intentClass = getMainActivityClass();
-        Intent intent = new Intent(mApplicationContext, intentClass);
-        PendingIntent pendingIntent = PendingIntent.getActivity(mApplicationContext, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
-        builder.setContentIntent(pendingIntent);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                NotificationChannel channel = new NotificationChannel("My Notification Channel ID",
+                        "My Notification Name", NotificationManager.IMPORTANCE_DEFAULT);
+                channel.setDescription("My Notification Channel Description");
+                NotificationManager notificationManager = (NotificationManager) mApplicationContext.getSystemService(Context.NOTIFICATION_SERVICE);
+                notificationManager.createNotificationChannel(channel);
+                builder.setChannelId(channel.getId());
+            }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel channel = new NotificationChannel("My Notification Channel ID",
-                    "My Notification Name", NotificationManager.IMPORTANCE_DEFAULT);
-            channel.setDescription("My Notification Channel Description");
-            NotificationManager notificationManager = (NotificationManager) mApplicationContext.getSystemService(Context.NOTIFICATION_SERVICE);
-            notificationManager.createNotificationChannel(channel);
-            builder.setChannelId(channel.getId());
+            mBeaconManager.enableForegroundServiceScanning(builder.build(), 456);
+            // For the above foreground scanning service to be useful, you need to disable
+            // JobScheduler-based scans (used on Android 8+) and set a fast background scan
+            // cycle that would otherwise be disallowed by the operating system.
+            //
+            mBeaconManager.setEnableScheduledScanJobs(false);
+            mBeaconManager.setBackgroundBetweenScanPeriod(0);
+            mBeaconManager.setBackgroundScanPeriod(1100);
+
+            bindManager();
         }
-
-        mBeaconManager.enableForegroundServiceScanning(builder.build(), 456);
-        // For the above foreground scanning service to be useful, you need to disable
-        // JobScheduler-based scans (used on Android 8+) and set a fast background scan
-        // cycle that would otherwise be disallowed by the operating system.
-        //
-        mBeaconManager.setEnableScheduledScanJobs(false);
-        mBeaconManager.setBackgroundBetweenScanPeriod(0);
-        mBeaconManager.setBackgroundScanPeriod(1100);
-
-        bindManager();
     }
 
     @Override
@@ -441,6 +443,9 @@ public class BeaconsAndroidModule extends ReactContextBaseJavaModule implements 
 
     @ReactMethod
     public void stopRanging(String regionId, String beaconUuid, Callback resolve, Callback reject) {
+        if (!mBeaconManager.isBound(this)) {
+            return;
+        }
         Region region = createRegion(regionId, beaconUuid);
         try {
             mBeaconManager.stopRangingBeaconsInRegion(region);
