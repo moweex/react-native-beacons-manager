@@ -70,7 +70,7 @@ public class BeaconsAndroidModule extends ReactContextBaseJavaModule implements 
         // Fix: may not be called after consumers are already bound beacon
         if (!mBeaconManager.isAnyConsumerBound()) {
             Notification.Builder builder = new Notification.Builder(mApplicationContext);
-            builder.setSmallIcon(android.R.drawable.ic_dialog_info);
+            builder.setSmallIcon(mApplicationContext.getResources().getIdentifier("ic_notification", "mipmap", mApplicationContext.getPackageName()));
             builder.setContentTitle("Scanning for Beacons");
             Class intentClass = getMainActivityClass();
             Intent intent = new Intent(mApplicationContext, intentClass);
