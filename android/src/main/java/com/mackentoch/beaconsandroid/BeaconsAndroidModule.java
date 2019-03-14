@@ -14,6 +14,9 @@ import android.provider.Settings;
 import android.support.annotation.Nullable;
 import android.support.v4.app.NotificationCompat;
 import android.util.Log;
+import android.content.res.Resources;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 
 import com.facebook.react.bridge.Callback;
 import com.facebook.react.bridge.ReactApplicationContext;
@@ -55,6 +58,7 @@ public class BeaconsAndroidModule extends ReactContextBaseJavaModule implements 
     private ReactApplicationContext mReactContext;
     private static boolean channelCreated = false;
     private static boolean isActivityActivated = true;
+
 
     public BeaconsAndroidModule(ReactApplicationContext reactContext) {
         super(reactContext);
@@ -326,7 +330,7 @@ public class BeaconsAndroidModule extends ReactContextBaseJavaModule implements 
 
             sendEvent(mReactContext, "regionDidEnter", createMonitoringResponse(region));
 
-            wakeUpAppIfNotRunning();
+            // wakeUpAppIfNotRunning();
         }
 
         @Override
@@ -395,7 +399,7 @@ public class BeaconsAndroidModule extends ReactContextBaseJavaModule implements 
             sendEvent(mReactContext, "beaconsDidRange", createRangingResponse(beacons, region));
 
             if (!beacons.isEmpty()) {
-                wakeUpAppIfNotRunning();
+                // wakeUpAppIfNotRunning();
             }
         }
     };
@@ -511,15 +515,20 @@ public class BeaconsAndroidModule extends ReactContextBaseJavaModule implements 
         manager.createNotificationChannel(channel);
         channelCreated = true;
     }
-
+    @ReactMethod
     private void createNotification(String title, String message) {
         Class intentClass = getMainActivityClass();
         Intent notificationIntent = new Intent(mApplicationContext, intentClass);
         Integer requestCode = new Random().nextInt(10000);
         PendingIntent contentIntent = PendingIntent.getActivity(mApplicationContext, requestCode, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-
+        
+        int smallIconResId;
+        Resources res = mApplicationContext.getResources();
+        String packageName = mApplicationContext.getPackageName();
+        smallIconResId = res.getIdentifier("ic_launcher", "mipmap", packageName);
+        
         NotificationCompat.Builder notification = new NotificationCompat.Builder(mApplicationContext, NOTIFICATION_CHANNEL_ID)
-                .setSmallIcon(android.R.drawable.ic_dialog_info)
+                .setSmallIcon(smallIconResId)
                 .setContentTitle(title)
                 .setContentText(message)
                 .setAutoCancel(false)
