@@ -531,7 +531,7 @@ public class BeaconsAndroidModule extends ReactContextBaseJavaModule implements 
                 .setSmallIcon(smallIconResId)
                 .setContentTitle(title)
                 .setContentText(message)
-                .setAutoCancel(false)
+                .setAutoCancel(true)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                 .setSound(Settings.System.DEFAULT_NOTIFICATION_URI)
