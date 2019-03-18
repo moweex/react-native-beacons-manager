@@ -520,7 +520,7 @@ public class BeaconsAndroidModule extends ReactContextBaseJavaModule implements 
         Class intentClass = getMainActivityClass();
         Intent notificationIntent = new Intent(mApplicationContext, intentClass);
         Integer requestCode = new Random().nextInt(10000);
-        PendingIntent contentIntent = PendingIntent.getActivity(mApplicationContext, requestCode, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent contentIntent = PendingIntent.getActivity(mApplicationContext, requestCode, notificationIntent, PendingIntent.FLAG_NO_CREATE);
         
         int smallIconResId;
         Resources res = mApplicationContext.getResources();
