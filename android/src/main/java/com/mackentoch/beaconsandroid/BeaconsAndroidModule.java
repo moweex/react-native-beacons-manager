@@ -59,7 +59,6 @@ public class BeaconsAndroidModule extends ReactContextBaseJavaModule implements 
     private static boolean channelCreated = false;
     private static boolean isActivityActivated = true;
 
-
     public BeaconsAndroidModule(ReactApplicationContext reactContext) {
         super(reactContext);
         Log.d(LOG_TAG, "BeaconsAndroidModule - started");
@@ -67,25 +66,35 @@ public class BeaconsAndroidModule extends ReactContextBaseJavaModule implements 
         this.mApplicationContext = reactContext.getApplicationContext();
         this.mBeaconManager = BeaconManager.getInstanceForApplication(mApplicationContext);
         // need to bind at instantiation so that service loads (to test more)
-        //mBeaconManager.getBeaconParsers().add(new BeaconParser().setBeaconLayout("m:0-3=4c000215,i:4-19,i:20-21,i:22-23,p:24-24")); // AltBeacon
-        mBeaconManager.getBeaconParsers().add(new BeaconParser().setBeaconLayout("m:2-3=0215,i:4-19,i:20-21,i:22-23,p:24-24")); // IBeacon
-//        mBeaconManager.setDebug(false);
+        // mBeaconManager.getBeaconParsers().add(new
+        // BeaconParser().setBeaconLayout("m:0-3=4c000215,i:4-19,i:20-21,i:22-23,p:24-24"));
+        // // AltBeacon
+        mBeaconManager.getBeaconParsers()
+                .add(new BeaconParser().setBeaconLayout("m:2-3=0215,i:4-19,i:20-21,i:22-23,p:24-24")); // IBeacon
+        // mBeaconManager.setDebug(false);
 
         // Fix: may not be called after consumers are already bound beacon
+    }
+
+    @ReactMethod
+    public void startBeacons() {
         if (!mBeaconManager.isAnyConsumerBound()) {
             Notification.Builder builder = new Notification.Builder(mApplicationContext);
-            builder.setSmallIcon(mApplicationContext.getResources().getIdentifier("ic_notification", "mipmap", mApplicationContext.getPackageName()));
+            builder.setSmallIcon(mApplicationContext.getResources().getIdentifier("ic_notification", "mipmap",
+                    mApplicationContext.getPackageName()));
             builder.setContentTitle("Scanning for Beacons");
             Class intentClass = getMainActivityClass();
             Intent intent = new Intent(mApplicationContext, intentClass);
-            PendingIntent pendingIntent = PendingIntent.getActivity(mApplicationContext, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+            PendingIntent pendingIntent = PendingIntent.getActivity(mApplicationContext, 0, intent,
+                    PendingIntent.FLAG_UPDATE_CURRENT);
             builder.setContentIntent(pendingIntent);
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 NotificationChannel channel = new NotificationChannel("My Notification Channel ID",
                         "My Notification Name", NotificationManager.IMPORTANCE_DEFAULT);
                 channel.setDescription("My Notification Channel Description");
-                NotificationManager notificationManager = (NotificationManager) mApplicationContext.getSystemService(Context.NOTIFICATION_SERVICE);
+                NotificationManager notificationManager = (NotificationManager) mApplicationContext
+                        .getSystemService(Context.NOTIFICATION_SERVICE);
                 notificationManager.createNotificationChannel(channel);
                 builder.setChannelId(channel.getId());
             }
@@ -96,7 +105,7 @@ public class BeaconsAndroidModule extends ReactContextBaseJavaModule implements 
             // cycle that would otherwise be disallowed by the operating system.
             //
             mBeaconManager.setEnableScheduledScanJobs(false);
-            mBeaconManager.setBackgroundBetweenScanPeriod(0);
+            mBeaconManager.setBackgroundBetweenScanPeriod(1300);
             mBeaconManager.setBackgroundScanPeriod(1100);
 
             bindManager();
@@ -114,7 +123,8 @@ public class BeaconsAndroidModule extends ReactContextBaseJavaModule implements 
         constants.put("SUPPORTED", BeaconTransmitter.SUPPORTED);
         constants.put("NOT_SUPPORTED_MIN_SDK", BeaconTransmitter.NOT_SUPPORTED_MIN_SDK);
         constants.put("NOT_SUPPORTED_BLE", BeaconTransmitter.NOT_SUPPORTED_BLE);
-        constants.put("NOT_SUPPORTED_CANNOT_GET_ADVERTISER_MULTIPLE_ADVERTISEMENTS", BeaconTransmitter.NOT_SUPPORTED_CANNOT_GET_ADVERTISER_MULTIPLE_ADVERTISEMENTS);
+        constants.put("NOT_SUPPORTED_CANNOT_GET_ADVERTISER_MULTIPLE_ADVERTISEMENTS",
+                BeaconTransmitter.NOT_SUPPORTED_CANNOT_GET_ADVERTISER_MULTIPLE_ADVERTISEMENTS);
         constants.put("NOT_SUPPORTED_CANNOT_GET_ADVERTISER", BeaconTransmitter.NOT_SUPPORTED_CANNOT_GET_ADVERTISER);
         constants.put("RUNNING_AVG_RSSI_FILTER", RUNNING_AVG_RSSI_FILTER);
         constants.put("ARMA_RSSI_FILTER", ARMA_RSSI_FILTER);
@@ -278,7 +288,8 @@ public class BeaconsAndroidModule extends ReactContextBaseJavaModule implements 
     public void onBeaconServiceConnect() {
         Log.v(LOG_TAG, "onBeaconServiceConnect");
 
-        // deprecated since v2.9 (see github: https://github.com/AltBeacon/android-beacon-library/releases/tag/2.9)
+        // deprecated since v2.9 (see github:
+        // https://github.com/AltBeacon/android-beacon-library/releases/tag/2.9)
         // mBeaconManager.setMonitorNotifier(mMonitorNotifier);
         // mBeaconManager.setRangeNotifier(mRangeNotifier);
         mBeaconManager.addMonitorNotifier(mMonitorNotifier);
@@ -305,15 +316,14 @@ public class BeaconsAndroidModule extends ReactContextBaseJavaModule implements 
      * Monitoring
      **********************************************************************************************/
     @ReactMethod
-    public void startMonitoring(String regionId, String beaconUuid, int minor, int major, Callback resolve, Callback reject) {
-        Log.d(LOG_TAG, "startMonitoring, monitoringRegionId: " + regionId + ", monitoringBeaconUuid: " + beaconUuid + ", minor: " + minor + ", major: " + major);
+    public void startMonitoring(String regionId, String beaconUuid, int minor, int major, Callback resolve,
+            Callback reject) {
+        Log.d(LOG_TAG, "startMonitoring, monitoringRegionId: " + regionId + ", monitoringBeaconUuid: " + beaconUuid
+                + ", minor: " + minor + ", major: " + major);
         try {
-            Region region = createRegion(
-                    regionId,
-                    beaconUuid,
+            Region region = createRegion(regionId, beaconUuid,
                     String.valueOf(minor).equals("-1") ? "" : String.valueOf(minor),
-                    String.valueOf(major).equals("-1") ? "" : String.valueOf(major)
-            );
+                    String.valueOf(major).equals("-1") ? "" : String.valueOf(major));
             mBeaconManager.startMonitoringBeaconsInRegion(region);
 
             resolve.invoke();
@@ -355,14 +365,13 @@ public class BeaconsAndroidModule extends ReactContextBaseJavaModule implements 
     }
 
     @ReactMethod
-    public void stopMonitoring(String regionId, String beaconUuid, int minor, int major, Callback resolve, Callback reject) {
-        Region region = createRegion(
-                regionId,
-                beaconUuid,
+    public void stopMonitoring(String regionId, String beaconUuid, int minor, int major, Callback resolve,
+            Callback reject) {
+        Region region = createRegion(regionId, beaconUuid,
                 String.valueOf(minor).equals("-1") ? "" : String.valueOf(minor),
                 String.valueOf(major).equals("-1") ? "" : String.valueOf(major)
-                // minor,
-                // major
+        // minor,
+        // major
         );
 
         try {
@@ -417,10 +426,8 @@ public class BeaconsAndroidModule extends ReactContextBaseJavaModule implements 
                 b.putInt("minor", beacon.getId3().toInt());
             }
             b.putInt("rssi", beacon.getRssi());
-            if (beacon.getDistance() == Double.POSITIVE_INFINITY
-                    || Double.isNaN(beacon.getDistance())
-                    || beacon.getDistance() == Double.NaN
-                    || beacon.getDistance() == Double.NEGATIVE_INFINITY) {
+            if (beacon.getDistance() == Double.POSITIVE_INFINITY || Double.isNaN(beacon.getDistance())
+                    || beacon.getDistance() == Double.NaN || beacon.getDistance() == Double.NEGATIVE_INFINITY) {
                 b.putDouble("distance", 999.0);
                 b.putString("proximity", "far");
             } else {
@@ -460,15 +467,12 @@ public class BeaconsAndroidModule extends ReactContextBaseJavaModule implements 
         }
     }
 
-
     /***********************************************************************************************
      * Utils
      **********************************************************************************************/
     private void sendEvent(ReactContext reactContext, String eventName, @Nullable WritableMap params) {
         if (reactContext.hasActiveCatalystInstance()) {
-            reactContext
-                    .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-                    .emit(eventName, params);
+            reactContext.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class).emit(eventName, params);
         }
     }
 
@@ -479,12 +483,8 @@ public class BeaconsAndroidModule extends ReactContextBaseJavaModule implements 
 
     private Region createRegion(String regionId, String beaconUuid, String minor, String major) {
         Identifier id1 = (beaconUuid == null) ? null : Identifier.parse(beaconUuid);
-        return new Region(
-                regionId,
-                id1,
-                major.length() > 0 ? Identifier.parse(major) : null,
-                minor.length() > 0 ? Identifier.parse(minor) : null
-        );
+        return new Region(regionId, id1, major.length() > 0 ? Identifier.parse(major) : null,
+                minor.length() > 0 ? Identifier.parse(minor) : null);
     }
 
     private Class getMainActivityClass() {
@@ -507,7 +507,9 @@ public class BeaconsAndroidModule extends ReactContextBaseJavaModule implements 
         if (manager == null)
             return;
 
-        @SuppressLint("WrongConstant") NotificationChannel channel = new NotificationChannel(NOTIFICATION_CHANNEL_ID, "Smart_Space_Pro_Channel", android.app.NotificationManager.IMPORTANCE_HIGH);
+        @SuppressLint("WrongConstant")
+        NotificationChannel channel = new NotificationChannel(NOTIFICATION_CHANNEL_ID, "Smart_Space_Pro_Channel",
+                android.app.NotificationManager.IMPORTANCE_HIGH);
         channel.setDescription("Smart_Space_Pro_Channel_Description");
         channel.enableLights(true);
         channel.enableVibration(true);
@@ -515,33 +517,32 @@ public class BeaconsAndroidModule extends ReactContextBaseJavaModule implements 
         manager.createNotificationChannel(channel);
         channelCreated = true;
     }
+
     @ReactMethod
     private void createNotification(String title, String message) {
         Class intentClass = getMainActivityClass();
         Intent notificationIntent = new Intent(mApplicationContext, intentClass);
         Integer requestCode = new Random().nextInt(10000);
-        PendingIntent contentIntent = PendingIntent.getActivity(mApplicationContext, requestCode, notificationIntent, PendingIntent.FLAG_NO_CREATE);
-        
+        PendingIntent contentIntent = PendingIntent.getActivity(mApplicationContext, requestCode, notificationIntent,
+                PendingIntent.FLAG_NO_CREATE);
+
         int smallIconResId;
         Resources res = mApplicationContext.getResources();
         String packageName = mApplicationContext.getPackageName();
         smallIconResId = res.getIdentifier("ic_launcher", "mipmap", packageName);
-        
-        NotificationCompat.Builder notification = new NotificationCompat.Builder(mApplicationContext, NOTIFICATION_CHANNEL_ID)
-                .setSmallIcon(smallIconResId)
-                .setContentTitle(title)
-                .setContentText(message)
-                .setAutoCancel(true)
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
-                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-                .setSound(Settings.System.DEFAULT_NOTIFICATION_URI)
-                .setContentIntent(contentIntent);
+
+        NotificationCompat.Builder notification = new NotificationCompat.Builder(mApplicationContext,
+                NOTIFICATION_CHANNEL_ID).setSmallIcon(smallIconResId).setContentTitle(title).setContentText(message)
+                        .setAutoCancel(true).setPriority(NotificationCompat.PRIORITY_HIGH)
+                        .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                        .setSound(Settings.System.DEFAULT_NOTIFICATION_URI).setContentIntent(contentIntent);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             notification.setCategory(NotificationCompat.CATEGORY_CALL);
         }
 
-        NotificationManager notificationManager = (NotificationManager) mApplicationContext.getSystemService(Context.NOTIFICATION_SERVICE);
+        NotificationManager notificationManager = (NotificationManager) mApplicationContext
+                .getSystemService(Context.NOTIFICATION_SERVICE);
         checkOrCreateChannel(notificationManager);
 
         Notification info = notification.build();
@@ -551,7 +552,8 @@ public class BeaconsAndroidModule extends ReactContextBaseJavaModule implements 
     }
 
     private Boolean isActivityRunning(Class activityClass) {
-        ActivityManager activityManager = (ActivityManager) mApplicationContext.getSystemService(Context.ACTIVITY_SERVICE);
+        ActivityManager activityManager = (ActivityManager) mApplicationContext
+                .getSystemService(Context.ACTIVITY_SERVICE);
         List<ActivityManager.RunningTaskInfo> tasks = activityManager.getRunningTasks(Integer.MAX_VALUE);
 
         for (ActivityManager.RunningTaskInfo task : tasks) {
@@ -569,7 +571,8 @@ public class BeaconsAndroidModule extends ReactContextBaseJavaModule implements 
         if (!isRunning) {
             Intent intent = new Intent(mApplicationContext, intentClass);
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            // Important:  make sure to add android:launchMode="singleInstance" in the manifest
+            // Important: make sure to add android:launchMode="singleInstance" in the
+            // manifest
             // to keep multiple copies of this activity from getting created if the user has
             // already manually launched the app.
             mApplicationContext.startActivity(intent);
