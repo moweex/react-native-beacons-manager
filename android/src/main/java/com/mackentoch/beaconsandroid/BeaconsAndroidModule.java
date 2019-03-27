@@ -81,7 +81,7 @@ public class BeaconsAndroidModule extends ReactContextBaseJavaModule implements 
     }
 
     @ReactMethod
-    public void startBeacons(String regionId, String beaconUuid, int minor, int major) {
+    public void startBeacons(String regionId, String beaconUuid, int minor, int major,String message) {
         // Fix: may not be called after consumers are already bound beacon
         BeaconsAndroidModule.regionId = regionId;
         BeaconsAndroidModule.beaconUuid = beaconUuid;
@@ -97,8 +97,11 @@ public class BeaconsAndroidModule extends ReactContextBaseJavaModule implements 
             builder.setSmallIcon(mApplicationContext.getResources().getIdentifier("ic_notification", "mipmap",
                     mApplicationContext.getPackageName()));
             builder.setNumber(0);
-            builder.setContentTitle("Hello Beacons !!");
+            builder.setStyle(new Notification.BigTextStyle().bigText(message));
+
             builder.setAutoCancel(true);
+
+
 
             Class intentClass = getMainActivityClass();
             Intent intent = new Intent(mApplicationContext, intentClass);
@@ -114,6 +117,8 @@ public class BeaconsAndroidModule extends ReactContextBaseJavaModule implements 
                         .getSystemService(Context.NOTIFICATION_SERVICE);
                 notificationManager.createNotificationChannel(channel);
                 builder.setChannelId(channel.getId());
+                channel.setShowBadge(false);
+
             }
 
             mBeaconManager.enableForegroundServiceScanning(builder.build(), 456);
