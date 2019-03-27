@@ -63,6 +63,7 @@ public class BeaconsAndroidModule extends ReactContextBaseJavaModule implements 
     private static String beaconUuid = "";
     private static int minor = 0;
     private static int major = 0;
+    private static boolean shouldMonitor = true;
 
     public BeaconsAndroidModule(ReactApplicationContext reactContext) {
         super(reactContext);
@@ -95,7 +96,10 @@ public class BeaconsAndroidModule extends ReactContextBaseJavaModule implements 
             Notification.Builder builder = new Notification.Builder(mApplicationContext);
             builder.setSmallIcon(mApplicationContext.getResources().getIdentifier("ic_notification", "mipmap",
                     mApplicationContext.getPackageName()));
+            builder.setNumber(0);
             builder.setContentTitle("Hello Beacons !!");
+            builder.setAutoCancel(true);
+
             Class intentClass = getMainActivityClass();
             Intent intent = new Intent(mApplicationContext, intentClass);
             PendingIntent pendingIntent = PendingIntent.getActivity(mApplicationContext, 0, intent,
@@ -118,8 +122,8 @@ public class BeaconsAndroidModule extends ReactContextBaseJavaModule implements 
             // cycle that would otherwise be disallowed by the operating system.
             //
             mBeaconManager.setEnableScheduledScanJobs(false);
-            mBeaconManager.setBackgroundBetweenScanPeriod(5200);
-            mBeaconManager.setBackgroundScanPeriod(1100);
+            mBeaconManager.setBackgroundBetweenScanPeriod(120000);
+            mBeaconManager.setBackgroundScanPeriod(5000);
 
             bindManager();
             addParser(parsers);
@@ -127,9 +131,35 @@ public class BeaconsAndroidModule extends ReactContextBaseJavaModule implements 
 
     }
 
+    @ReactMethod
+    public void cancelAllNotification() {
+        Log.d(LOG_TAG, "BeaconsAndroidModule - Cancel All Notifications");
+
+        // This Deletes Notification But Doesn't Delete Presistant
+        // NotificationManager notificationManager = (NotificationManager)
+        // mApplicationContext
+        // .getSystemService(Context.NOTIFICATION_SERVICE);
+        // notificationManager.cancelAll();
+        // if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        // notificationManager.deleteNotificationChannel("456");
+        // }
+
+        // NotificationManager notify = (NotificationManager) mApplicationContext
+        // .getSystemService(Context.NOTIFICATION_SERVICE);
+        // notify.cancel(456);
+        // Log.i(LOG_TAG, "Forground Service Notification cancelled");
+
+        Log.i(LOG_TAG, "Disabling ForegroundServiceScanning");
+        unbindManager();
+        Log.i(LOG_TAG, "ForegroundServiceScanning disabled");
+
+    }
+
     public void monitorStarter(String regionId, String beaconUuid, int minor, int major) {
-        startMonitoring(regionId, beaconUuid, minor, major);
-        startRanging(regionId, beaconUuid);
+        if (shouldMonitor) {
+            startMonitoring(regionId, beaconUuid, minor, major);
+            startRanging(regionId, beaconUuid);
+        }
     }
 
     @Override
@@ -314,7 +344,7 @@ public class BeaconsAndroidModule extends ReactContextBaseJavaModule implements 
         mBeaconManager.addMonitorNotifier(mMonitorNotifier);
         mBeaconManager.addRangeNotifier(mRangeNotifier);
         sendEvent(mReactContext, "beaconServiceConnected", null);
-        monitorStarter(regionId,beaconUuid,minor,major);
+        monitorStarter(regionId, beaconUuid, minor, major);
     }
 
     @Override
@@ -423,7 +453,7 @@ public class BeaconsAndroidModule extends ReactContextBaseJavaModule implements 
             sendEvent(mReactContext, "beaconsDidRange", createRangingResponse(beacons, region));
 
             if (!beacons.isEmpty()) {
-                
+
             }
         }
     };
@@ -550,6 +580,7 @@ public class BeaconsAndroidModule extends ReactContextBaseJavaModule implements 
                 NOTIFICATION_CHANNEL_ID).setSmallIcon(smallIconResId).setContentTitle(title).setContentText(message)
                         .setAutoCancel(true).setPriority(NotificationCompat.PRIORITY_HIGH)
                         .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                        .setStyle(new NotificationCompat.BigTextStyle().bigText(message))
                         .setSound(Settings.System.DEFAULT_NOTIFICATION_URI).setContentIntent(contentIntent);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
