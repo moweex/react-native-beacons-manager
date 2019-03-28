@@ -107,7 +107,7 @@ public class BeaconsAndroidModule extends ReactContextBaseJavaModule implements 
             Intent intent = new Intent(mApplicationContext, intentClass);
             PendingIntent pendingIntent = PendingIntent.getActivity(mApplicationContext, 0, intent,
                     PendingIntent.FLAG_UPDATE_CURRENT);
-            builder.setContentIntent(pendingIntent);
+            // builder.setContentIntent(pendingIntent);
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 NotificationChannel channel = new NotificationChannel("My Notification Channel ID",
