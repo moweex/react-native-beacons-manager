@@ -112,7 +112,7 @@ public class BeaconsAndroidModule extends ReactContextBaseJavaModule implements 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 NotificationChannel channel = new NotificationChannel("My Notification Channel ID",
                         "My Notification Name", NotificationManager.IMPORTANCE_DEFAULT);
-                channel.setDescription("My Notification Channel Description");
+                channel.setDescription(message);
                 NotificationManager notificationManager = (NotificationManager) mApplicationContext
                         .getSystemService(Context.NOTIFICATION_SERVICE);
                 notificationManager.createNotificationChannel(channel);
